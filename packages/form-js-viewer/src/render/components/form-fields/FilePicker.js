@@ -3,8 +3,7 @@ import { formFieldClasses } from '../Util';
 import { Label } from '../Label';
 import { Errors } from '../Errors';
 import { useEffect, useRef } from 'preact/hooks';
-import { useService, useSingleLineTemplateEvaluation, useBooleanExpressionEvaluation } from '../../hooks';
-import { FILE_PICKER_FILE_KEY_PREFIX } from '../../../util/constants/FilePickerConstants';
+import { useSingleLineTemplateEvaluation, useBooleanExpressionEvaluation } from '../../hooks';
 
 const type = 'filepicker';
 const ids = new Ids();
@@ -31,8 +30,6 @@ const EMPTY_ARRAY = [];
 export function FilePicker(props) {
   /** @type {import("preact/hooks").Ref<HTMLInputElement>} */
   const fileInputRef = useRef(null);
-  /** @type {import('../../FileRegistry').FileRegistry} */
-  const fileRegistry = useService('fileRegistry', false);
   const { field, onChange, domId, errors = [], disabled, readonly, required, value: filesKey = '' } = props;
   const { label, multiple = false, accept = '' } = field;
   /** @type {string} */
@@ -40,13 +37,7 @@ export function FilePicker(props) {
   const evaluatedMultiple = useBooleanExpressionEvaluation(multiple);
   const errorMessageId = `${domId}-error-message`;
   /** @type {File[]} */
-  const selectedFiles = fileRegistry === null ? EMPTY_ARRAY : fileRegistry.getFiles(filesKey);
-
-  useEffect(() => {
-    if (filesKey && fileRegistry !== null && !fileRegistry.hasKey(filesKey)) {
-      onChange({ value: null });
-    }
-  }, [fileRegistry, filesKey, onChange, selectedFiles.length]);
+  const selectedFiles =  EMPTY_ARRAY;
 
   useEffect(() => {
     const data = new DataTransfer();
@@ -54,29 +45,8 @@ export function FilePicker(props) {
     fileInputRef.current.files = data.files;
   }, [selectedFiles]);
 
-  /**
-   * @type import("preact").JSX.GenericEventHandler<HTMLInputElement>
-   */
-  const onFileChange = (event) => {
-    const input = /** @type {HTMLInputElement} */ (event.target);
 
-    // if we have an associated file key but no files are selected, clear the file key and associated files
-    if ((input.files === null || input.files.length === 0) && filesKey !== '') {
-      fileRegistry.deleteFiles(filesKey);
-      onChange({ value: null });
-      return;
-    }
-
-    const files = Array.from(input.files);
-
-    // ensure fileKey exists
-    const updatedFilesKey = filesKey || ids.nextPrefixed(FILE_PICKER_FILE_KEY_PREFIX);
-
-    fileRegistry.setFiles(updatedFilesKey, files);
-    onChange({ value: updatedFilesKey });
-  };
-
-  const isInputDisabled = disabled || readonly || fileRegistry === null;
+  const isInputDisabled = disabled || readonly;
 
   return (
     <div className={formFieldClasses(type, { errors, disabled, readonly })}>
@@ -90,7 +60,6 @@ export function FilePicker(props) {
         disabled={isInputDisabled}
         multiple={evaluatedMultiple || undefined}
         accept={evaluatedAccept || undefined}
-        onChange={onFileChange}
       />
       <div className="fjs-filepicker-container">
         <button
